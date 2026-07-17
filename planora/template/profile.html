@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>My Profile - Planora</title>
+    <style>
+        /* CSS Tambahan khusus agar tidak bentrok dengan VS Code */
+        .alert-box { padding: 12px; margin-top: 20px; border-radius: 6px; font-size: 14px; text-align: left; }
+        .alert-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .input-profile { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .input-readonly { background-color: #f8f9fa; color: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">🖊️ Planora</div>
+        <div class="nav-links">
+            <a href="/dashboard">🏠 Home</a>
+            <a href="/my-content">📄 My Content</a>
+            <div class="dropdown">
+                <a href="#" class="dropbtn">👤 {{ session['username'] }} ▾</a>
+                <div class="dropdown-content">
+                    <a href="/profile">Profile</a>
+                    <a href="/setting">Setting</a>
+                    <a href="/logout">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container" style="max-width: 600px;">
+        <div class="content-list-box" style="text-align: center; padding: 40px 20px;">
+            <div style="width: 100px; height: 100px; background: #0052cc; color: white; font-size: 40px; line-height: 100px; border-radius: 50%; margin: 0 auto 20px; font-weight: bold;">
+                {{ session['username'][0] | upper }}
+            </div>
+            <h2>{{ session['username'] }}</h2>
+            <p style="color: #666; margin-bottom: 30px;">Content Creator Workspace Member</p>
+            <hr>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert-box {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+                      {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form action="/profile" method="POST" style="text-align: left; margin-top: 20px;">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold; color: #333;">Username Anda</label>
+                    <input type="text" name="username" class="input-profile" value="{{ session['username'] }}" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom: 8px; font-weight: bold; color: #333;">Email Terdaftar</label>
+                    <input type="text" class="input-profile input-readonly" value="{{ session['email'] }}" readonly>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; background: #00a3ff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; text-align: center; margin-top: 15px;">
+                    Save Changes
+                </button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

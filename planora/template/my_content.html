@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>My Content - Planora</title>
+    <style>
+        .chart-header-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .chart-controls-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chart-nav-arrows {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .chart-nav-btn {
+            background: #f1f3f5;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        .chart-nav-btn:hover {
+            background: #e2e8f0;
+            color: #212529;
+        }
+        .chart-filter-buttons {
+            display: flex;
+            background: #f1f3f5;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        .chart-filter-buttons button {
+            background: none;
+            border: none;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        .chart-filter-buttons button.active {
+            background: white;
+            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">Planora</div>
+        <div class="nav-links">
+            <a href="/dashboard">Home</a>
+            <a href="/my-content" class="active">My Content</a>
+            <div class="dropdown">
+                <a href="#" class="dropbtn">👤 {{ session['username'] }} ▾</a>
+                <div class="dropdown-content">
+                    <a href="/profile">Profile</a>
+                    <a href="/setting">Setting</a>
+                    <a href="/logout">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h2>My Content Workspaces</h2>
+        <p style="color:#666;">Track your productivity and view your complete content history here.</p>
+
+        <div class="content-list-box" style="margin-bottom: 30px; padding: 25px;">
+            <div class="chart-header-wrapper">
+                <h4 style="margin:0;" id="chart-main-title">Completed Content</h4>
+                
+                <div class="chart-controls-right">
+                    <div class="chart-nav-arrows" id="weekNavArrows">
+                        <button class="chart-nav-btn" onclick="navigateWeek(-1)">&lt;</button>
+                        <button class="chart-nav-btn" onclick="navigateWeek(1)">&gt;</button>
+                    </div>
+
+                    <div class="chart-filter-buttons">
+                        <button onclick="switchPeriod('weekly')" id="btn-weekly" class="active">Weekly</button>
+                        <button onclick="switchPeriod('yearly')" id="btn-yearly">Yearly</button>
+                    </div>
+                </div>
+            </div>
+            <div style="max-height: 300px; width: 100%; height: 250px; position: relative;">
+                <canvas id="weeklyChart"></canvas>
+            </div>
+        </div>
+
+        <div class="content-list-box">
+            <h4>All Content</h4>
+            <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                <input type="text" id="searchBar" class="form-control" placeholder="Search by content title..." onkeyup="filterAllContent()">
+                <select id="statusFilter" class="form-control" style="max-width: 200px;" onchange="filterAllContent()">
+                    <option value="All">All Statuses</option>
+                    <option value="Idea">Idea</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Done">Done</option>
+                    <option value="Not Completed">Not Completed</option>
+                </select>
+            </div>
+            <div id="all-contents-container"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Set waktu dasar chart sesuai tanggal hari ini (ambil dari sistem, bukan hardcode)
+        let currentChartDate = new Date();
+        let currentPeriod = 'weekly';
+        let myContentChartInstance = null;
+
+        function switchPeriod(period) {
+            currentPeriod = period;
+            
+            const arrowContainer = document.getElementById('weekNavArrows');
+            if (period === 'weekly') {
+                arrowContainer.style.display = 'flex';
+                currentChartDate = new Date(); // Reset ke tanggal hari ini
+            } else {
+                arrowContainer.style.display = 'none';
+            }
+
+            document.querySelectorAll('.chart-filter-buttons button').forEach(btn => btn.classList.remove('active'));
+            if(document.getElementById(`btn-${period}`)) {
+                document.getElementById(`btn-${period}`).classList.add('active');
+            }
+
+            updateMyContentChart();
+        }
+
+        function navigateWeek(direction) {
+            if (currentPeriod !== 'weekly') return;
+            currentChartDate.setDate(currentChartDate.getDate() + (direction * 7));
+            updateMyContentChart();
+        }
+
+        function getDynamicWeeklyLabels(referenceDate) {
+            const current = new Date(referenceDate);
+            const day = current.getDay();
+            const distanceToMonday = day === 0 ? -6 : 1 - day; 
+            
+            const monday = new Date(current);
+            monday.setDate(current.getDate() + distanceToMonday);
+            
+            const daysName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+            let labels = [];
+            let dateStrings = [];
+            
+            for (let i = 0; i < 7; i++) {
+                const nextDay = new Date(monday);
+                nextDay.setDate(monday.getDate() + i);
+                
+                const dayName = daysName[nextDay.getDay()];
+                const dateNum = nextDay.getDate();
+                
+                labels.push(`${dayName.toLowerCase().replace(/^\w/, c => c.toUpperCase())}, ${dateNum}`);
+                dateStrings.push(nextDay.toISOString().split('T')[0]);
+            }
+            return { labels, dateStrings };
+        }
+
+        function updateMyContentChart() {
+            if (currentPeriod === 'weekly') {
+                const weeklyInfo = getDynamicWeeklyLabels(currentChartDate);
+                
+                const formatIndo = (dStr) => dStr.split('-').reverse().slice(0,2).join('/');
+                document.getElementById('chart-main-title').innerText = `Weekly Chart (${formatIndo(weeklyInfo.dateStrings[0])} - ${formatIndo(weeklyInfo.dateStrings[6])})`;
+
+                fetch(`/api/chart-data?period=weekly&dates=${weeklyInfo.dateStrings.join(',')}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderMyContentChart(weeklyInfo.labels, data.values);
+                    });
+            } else {
+                const thisYear = new Date().getFullYear();
+                document.getElementById('chart-main-title').innerText = `COMPLETED CONTENT CHART ${thisYear}`;
+                fetch(`/api/chart-data?period=yearly`)
+                    .then(response => response.json())
+                    .then(data => {
+                        renderMyContentChart(data.labels, data.values);
+                    });
+            }
+        }
+
+        function renderMyContentChart(labels, values) {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            
+            if (myContentChartInstance) {
+                myContentChartInstance.destroy();
+            }
+
+            myContentChartInstance = new Chart(ctx, {
+                type: 'bar', 
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Completed Conten Count',
+                        data: values,
+                        backgroundColor: '#0052cc',
+                        borderColor: '#003366',
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            filterAllContent();
+            switchPeriod('weekly');
+        });
+    </script>
+</body>
+</html>

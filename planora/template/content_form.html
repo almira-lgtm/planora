@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>{{ action }} Content - Planora</title>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">🖊️ Planora</div>
+        <div class="nav-links"><a href="/dashboard">🏠 Home</a></div>
+    </div>
+    <div class="container" style="max-width: 600px; background:white; padding:30px; border-radius:8px; margin-top:30px; box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+        <a href="/dashboard" style="text-decoration:none; color:#666; font-size:14px;">🡨 Kembali ke Dashboard</a>
+        <h2 style="color: #003366; margin-top:15px;">{{ action }} Content Workspace</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label>Content Title *</label>
+                <input type="text" name="title" class="form-control" value="{{ content.title if content else '' }}" placeholder="Masukkan judul rencana konten kamu" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="description" class="form-control" rows="4" placeholder="Tuliskan detail, naskah, atau catatan ide konten di sini...">{{ content.description if content else '' }}</textarea>
+            </div>
+            <div style="display:flex; gap:20px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Platform / Kategori</label>
+                    <select name="category" class="form-control">
+                        {% for cat in ['YouTube', 'Instagram', 'TikTok', 'Blog', 'Twitter', 'Podcast', 'Other'] %}
+                        <option value="{{ cat }}" {% if content and content.category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Status Konten</label>
+                    <select name="status" class="form-control">
+                        {% for stat in ['Idea', 'In Progress', 'Done', 'Not Completed'] %}
+                        <option value="{{ stat }}" {% if content and content.status == stat %}selected{% endif %}>{{ stat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Jadwal Rilis / Publish Date</label>
+                <input type="date" name="publish_date" class="form-control" value="{{ content.publish_date if content else default_date }}">
+            </div>
+            <div style="margin-top: 35px;">
+                <button type="submit" class="btn-primary" style="padding: 12px 30px;">Simpan Konten</button>
+                <a href="/dashboard" class="form-control" style="text-decoration:none; background:#edf2f7; color:#4a5568; margin-left:10px; display:inline-block; width:auto; text-align:center;">Batal</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
